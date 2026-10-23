@@ -152,6 +152,9 @@ $('#transcribeBtn').addEventListener('click', async () => {
   }
   state.busy = true; updateButtons();
   await keepAwake(true);
+  modelWarning = '';
+  // Požádáme prohlížeč, ať uložená data (model) nemaže, když dochází místo.
+  try { await navigator.storage?.persist?.(); } catch {}
   try {
     setProgress('progress', null, 'Čtu zvuk z videa…');
     const audio = await decodeAudio(state.file);
@@ -162,7 +165,11 @@ $('#transcribeBtn').addEventListener('click', async () => {
         if (m.type === 'download') {
           const mb = (n) => (n / 1048576).toFixed(0);
           const f = m.total ? m.loaded / m.total : null;
-          setProgress('progress', f, `Stahuji model (jen poprvé): ${mb(m.loaded)} / ${mb(m.total)} MB`);
+          setProgress('progress', f, m.fromCache
+            ? `Načítám model z paměti zařízení (nic se nestahuje): ${Math.round((f || 0) * 100)} %`
+            : `Stahuji model (jen poprvé): ${mb(m.loaded)} / ${mb(m.total)} MB`);
+        } else if (m.type === 'warn') {
+          modelWarning = m.text;
         } else if (m.type === 'status') {
           setProgress('progress', null, m.text);
           if (m.text.startsWith('Přepisuji')) tickElapsed(started, audio.length / 16000);
@@ -180,7 +187,8 @@ $('#transcribeBtn').addEventListener('click', async () => {
     save();
     renderEditor();
     const secs = ((performance.now() - started) / 1000).toFixed(0);
-    setProgress('progress', 1, `Hotovo za ${secs} s – ${words.length} slov. Zkontroluj text${mobileQuery.matches ? ' v záložce Text' : ' vpravo'}.`);
+    const warnText = modelWarning ? ' ' + modelWarning : '';
+    setProgress('progress', 1, `Hotovo za ${secs} s – ${words.length} slov. Zkontroluj text${mobileQuery.matches ? ' v záložce Text' : ' vpravo'}.${warnText}`);
     if (mobileQuery.matches) setTab('text');
   } catch (err) {
     stopElapsed();
@@ -196,6 +204,7 @@ $('#transcribeBtn').addEventListener('click', async () => {
 });
 
 let elapsedTimer = null;
+let modelWarning = '';
 function tickElapsed(started, duration) {
   stopElapsed();
   elapsedTimer = setInterval(() => {

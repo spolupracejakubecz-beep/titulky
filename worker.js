@@ -41,6 +41,17 @@ const MODELS = {
 let asr = null;
 let loadedKey = null;
 
+// Kolik souborů modelu (.onnx) už je uložených v paměti prohlížeče.
+async function cachedModelFiles(modelId) {
+  try {
+    const c = await caches.open(env.cacheKey || 'transformers-cache');
+    const keys = await c.keys();
+    return keys.filter((k) => k.url.includes(modelId) && /\.onnx(_data)?$/.test(k.url)).length;
+  } catch {
+    return 0;
+  }
+}
+
 async function getPipeline(modelKey, device, hasF16) {
   const key = `${modelKey}|${device}|${hasF16}`;
   if (asr && loadedKey === key) return asr;
@@ -51,6 +62,8 @@ async function getPipeline(modelKey, device, hasF16) {
   if (device === 'webgpu') dtype = (hasF16 && m.dtype.webgpu_f16) || m.dtype.webgpu;
 
   const files = {};
+  const fromCache = (await cachedModelFiles(m.id)) >= 2;
+  self.postMessage({ type: 'status', text: fromCache ? 'Načítám model z paměti zařízení (nic se nestahuje)…' : 'Stahuji model (jen poprvé)…' });
   asr = await pipeline('automatic-speech-recognition', m.id, {
     device,
     dtype,
@@ -59,11 +72,15 @@ async function getPipeline(modelKey, device, hasF16) {
         files[p.file] = { loaded: p.loaded || 0, total: p.total || 0 };
         let loaded = 0, total = 0;
         for (const f of Object.values(files)) { loaded += f.loaded; total += f.total; }
-        self.postMessage({ type: 'download', loaded, total, file: p.file });
+        self.postMessage({ type: 'download', loaded, total, file: p.file, fromCache });
       }
     },
   });
   loadedKey = key;
+  // Ověření, že se model opravdu uložil (jinak by se stahoval při každém otevření).
+  if (!fromCache && (await cachedModelFiles(m.id)) < 2) {
+    self.postMessage({ type: 'warn', text: 'Model se nepodařilo uložit do paměti prohlížeče (málo místa, nebo anonymní/soukromé okno). Příště se bude stahovat znovu.' });
+  }
   return asr;
 }
 
@@ -72,7 +89,6 @@ self.onmessage = async (e) => {
   if (type !== 'transcribe') return;
   const { audio, modelKey, device, hasF16 } = e.data;
   try {
-    self.postMessage({ type: 'status', text: 'Načítám model…' });
     const p = await getPipeline(modelKey, device, hasF16);
 
     self.postMessage({ type: 'status', text: 'Přepisuji řeč…' });
