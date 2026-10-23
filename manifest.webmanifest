@@ -1,0 +1,16 @@
+{
+  "name": "Titulky na Reels",
+  "short_name": "Titulky",
+  "description": "Automatické české titulky k videím pro Instagram Reels. Běží celé v telefonu nebo počítači, bez kreditů.",
+  "lang": "cs",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

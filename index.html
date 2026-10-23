@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Titulky">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <title>Titulky na Reels</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">Titulky na Reels</div>
+    <div class="device" id="deviceInfo">Zjišťuji výkon prohlížeče…</div>
+  </header>
+
+  <main class="layout">
+    <!-- Levý sloupec: nahrání + přepis, styl -->
+    <div class="col-left">
+    <section class="panel" data-tab="video" id="videoPanel">
+      <h2>1. Video</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="fileInput" accept="video/*,audio/*" hidden>
+        <strong class="desk-only">Přetáhni sem video</strong>
+        <span class="desk-only">nebo klikni a vyber soubor (MP4, MOV…)</span>
+        <strong class="mob-only">Vybrat video</strong>
+        <span class="mob-only">z galerie nebo souborů</span>
+      </label>
+      <div class="filename" id="fileName"></div>
+
+      <h2>2. Přepis</h2>
+      <label class="field">
+        <span>Model</span>
+        <select id="modelSelect">
+          <option value="small">Standardní – Whisper Small (~250–400 MB)</option>
+          <option value="turbo">Nejpřesnější – Whisper Large v3 Turbo (~600–800 MB, chce WebGPU)</option>
+          <option value="base">Rychlý test – Whisper Base (~100 MB, slabší čeština)</option>
+        </select>
+      </label>
+      <button class="primary" id="transcribeBtn" disabled>Vytvořit titulky</button>
+      <div class="progress" id="progressWrap" hidden>
+        <div class="bar"><div id="progressBar"></div></div>
+        <div class="progress-text" id="progressText"></div>
+      </div>
+
+      <div id="exportSlotMobile"></div>
+    </section>
+    <section class="panel" data-tab="style" id="stylePanel">
+      <h2>3. Styl</h2>
+      <div class="presets" id="presets"></div>
+
+      <div class="grid2">
+        <label class="field span2"><span>Písmo</span>
+          <select data-style="fontKey" id="fontSelect"></select>
+        </label>
+        <label class="field"><span>Velikost</span>
+          <input type="range" min="3" max="18" step="0.5" data-style="sizePct">
+        </label>
+        <label class="field"><span>Slov najednou</span>
+          <input type="number" min="1" max="10" data-style="maxWords">
+        </label>
+        <label class="field"><span>Barva textu</span>
+          <input type="color" data-style="textColor">
+        </label>
+        <label class="field"><span>Barva zvýraznění</span>
+          <input type="color" data-style="highlightColor">
+        </label>
+        <label class="field"><span>Zvýraznění slova</span>
+          <select data-style="highlightMode">
+            <option value="color">Barva textu</option>
+            <option value="box">Barevný box</option>
+            <option value="none">Žádné</option>
+          </select>
+        </label>
+        <label class="field"><span>Zobrazení</span>
+          <select data-style="reveal">
+            <option value="all">Celá skupina</option>
+            <option value="progressive">Slova naskakují</option>
+            <option value="dim">Nevyřčená ztlumená</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" data-style="uppercase"> VELKÁ PÍSMENA</label>
+        <label class="field"><span>Animace</span>
+          <select data-style="animation">
+            <option value="pop">Pop</option>
+            <option value="rise">Vyjetí zdola</option>
+            <option value="none">Žádná</option>
+          </select>
+        </label>
+      </div>
+
+      <details class="more">
+        <summary>Další nastavení (obrys, záře, stín, přechod, náklon, efekty, průhlednost)</summary>
+        <div class="grid2">
+          <label class="field"><span>Obrys</span><input type="range" min="0" max="35" step="1" data-style="strokePct"></label>
+          <label class="field"><span>Barva obrysu</span><input type="color" data-style="strokeColor"></label>
+          <label class="field"><span>Vnější obrys</span><input type="range" min="0" max="25" step="1" data-style="outlinePct"></label>
+          <label class="field"><span>Barva vnějšího obrysu</span><input type="color" data-style="outlineColor"></label>
+          <label class="field"><span>Záře (neon)</span><input type="range" min="0" max="80" step="1" data-style="glowPct"></label>
+          <label class="field"><span>Barva záře</span><input type="color" data-style="glowColor"></label>
+          <label class="check span2"><input type="checkbox" data-style="glowAuto"> Záře v barvě textu</label>
+          <label class="field"><span>Stín</span>
+            <select data-style="shadow">
+              <option value="soft">Měkký</option>
+              <option value="hard">3D (plný)</option>
+              <option value="none">Žádný</option>
+            </select>
+          </label>
+          <label class="field"><span>Barva 3D stínu</span><input type="color" data-style="shadowColor"></label>
+          <label class="field"><span>Hloubka 3D stínu</span><input type="range" min="1" max="20" step="1" data-style="shadowPct"></label>
+          <label class="field"><span>Barva ztlumených slov</span><input type="color" data-style="dimColor"></label>
+          <label class="field"><span>Podklad</span>
+            <select data-style="background">
+              <option value="none">Žádný</option>
+              <option value="bar">Jeden blok</option>
+              <option value="line">Štítek na řádek</option>
+              <option value="word">Štítek na slovo</option>
+            </select>
+          </label>
+          <label class="field"><span>Barva podkladu</span><input type="color" data-style="bgColor"></label>
+          <label class="field"><span>Krytí podkladu</span><input type="range" min="0" max="100" step="5" data-style="bgOpacity"></label>
+          <label class="field"><span>Průhlednost titulku</span><input type="range" min="10" max="100" step="5" data-style="opacity"></label>
+          <label class="field span2"><span>Prolnutí s videem</span>
+            <select data-style="blend">
+              <option value="normal">Normální</option>
+              <option value="difference">Inverze – barva podle pozadí</option>
+              <option value="exclusion">Jemná inverze</option>
+              <option value="soft-light">Sklo (jemné světlo)</option>
+              <option value="overlay">Překrytí</option>
+            </select>
+          </label>
+          <label class="check span2"><input type="checkbox" data-style="gradient"> Barevný přechod textu</label>
+          <label class="field"><span>Přechod nahoře</span><input type="color" data-style="gradTop"></label>
+          <label class="field"><span>Přechod dole</span><input type="color" data-style="gradBottom"></label>
+          <label class="field"><span>Náklon</span><input type="range" min="-15" max="15" step="1" data-style="rotate"></label>
+          <label class="field"><span>Efekt</span>
+            <select data-style="effect">
+              <option value="none">Žádný</option>
+              <option value="ransom">Výstřižková písmena</option>
+              <option value="confetti">Konfety</option>
+              <option value="streak">Světelný pruh</option>
+            </select>
+          </label>
+          <label class="field span2"><span>Pozice (výška) – nebo táhni titulkem v náhledu</span>
+            <input type="range" min="5" max="95" step="0.5" data-style="posY">
+          </label>
+        </div>
+      </details>
+    </section>
+
+    </div>
+
+    <!-- Střed: náhled 9:16 -->
+    <section class="preview-wrap">
+      <div class="stage" id="stage">
+        <video id="video" playsinline></video>
+        <canvas id="overlay"></canvas>
+        <div class="empty" id="emptyStage">Tady uvidíš náhled</div>
+      </div>
+      <div class="controls">
+        <button id="playBtn" disabled>▶ Přehrát</button>
+        <span id="timeLabel">0:00.0</span>
+      </div>
+      <p class="hint stage-hint">Titulek chytni prstem nebo myší a posuň nahoru/dolů. Červeně se při tažení ukážou místa, kde na Reels překáží rozhraní Instagramu.</p>
+
+      <div id="exportBlock">
+      <h2>4. Export</h2>
+      <div class="export">
+        <button class="primary" id="exportVideoBtn" disabled>Stáhnout video s titulky (MP4)</button>
+        <button id="exportSrtBtn" disabled>Stáhnout SRT</button>
+        <button id="cancelExportBtn" hidden>Zrušit export</button>
+      </div>
+      <div class="progress" id="exportWrap" hidden>
+        <div class="bar"><div id="exportBar"></div></div>
+        <div class="progress-text" id="exportText"></div>
+      </div>
+      <button id="shareBtn" class="share" hidden>Uložit do Fotek / Sdílet</button>
+      </div>
+    </section>
+
+    <!-- Pravý panel: editor textu -->
+    <section class="panel" data-tab="text" id="editorPanel">
+      <div class="editor-head">
+        <h2>Úprava textu</h2>
+        <button id="regroupBtn" class="small" disabled title="Znovu rozdělí slova podle nastavení &quot;Slov najednou&quot;">Přeskupit</button>
+      </div>
+      <p class="hint">Klikni do textu a oprav ho. Klik na čas skočí na to místo ve videu. Úpravy se ukládají automaticky v tomto prohlížeči.</p>
+      <div id="editor" class="editor"></div>
+    </section>
+  </main>
+
+  <!-- Spodní lišta jen na mobilu -->
+  <nav class="tabbar" id="tabbar">
+    <button data-go="video" class="on"><span>🎬</span>Video</button>
+    <button data-go="style"><span>🎨</span>Styl</button>
+    <button data-go="text"><span>✏️</span>Text</button>
+  </nav>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
