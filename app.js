@@ -356,7 +356,14 @@ function highlightActiveRow(t) {
     const row = editor.querySelector(`.seg[data-i="${idx}"]`);
     if (row) {
       row.classList.add('active');
-      if (!video.paused && !editor.contains(document.activeElement)) row.scrollIntoView({ block: 'nearest' });
+      // Na počítači posuneme jen seznam titulků (ne celou stránku). Na mobilu se nescrolluje vůbec,
+      // aktuální titulek je jen zvýrazněný, ať stránka neskáče.
+      if (!mobileQuery.matches && !video.paused && !editor.contains(document.activeElement)) {
+        const top = row.offsetTop - editor.offsetTop;
+        if (top < editor.scrollTop || top + row.offsetHeight > editor.scrollTop + editor.clientHeight) {
+          editor.scrollTop = top - editor.clientHeight / 3;
+        }
+      }
     }
   }
 }
